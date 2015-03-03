@@ -4,7 +4,7 @@
 FROM dockerfile/ubuntu
 MAINTAINER 3846masa <3846masahiro+git@gmail.com>
 
-RUN apt update && apt install -y nginx-extras libwww-curl-perl libjson-perl libjson-xs-perl
+RUN apt update && apt install -y nginx-extras libjson-perl libjson-xs-perl
 
 ADD nginx /etc/nginx/sites-available/
 

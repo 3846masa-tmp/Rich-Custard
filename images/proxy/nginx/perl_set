@@ -2,7 +2,7 @@ perl_set $proxy '
 
 use strict;
 use warnings;
-use WWW::Curl::Easy;
+use IO::Socket::UNIX;
 use JSON "decode_json";
 
 sub {
@@ -13,15 +13,21 @@ sub {
   my ($container, $port) = split(/\./, $host);
   $port = "80" unless ($port =~ /^\d+$/);
 
+  my $sock = IO::Socket::UNIX->new(
+    Type => SOCK_STREAM(),
+    Peer => "/var/run/docker.sock",
+    Timeout => 1
+  );
+  $sock->print("GET /containers/${container}/json HTTP/1.0\n\n");
+
   my $json = "";
-  my $curl = WWW::Curl::Easy->new;
-  $curl->setopt(CURLOPT_URL, "http://localhost/containers/${container}/json");
-  $curl->setopt(CURLOPT_WRITEDATA, \$json);
-  $curl->setopt(CURLOPT_TIMEOUT, 1);
-  $curl->perform;
+  while (my $line = $sock->getline) {
+    $json .= $line;
+  }
+  $sock->close;
+  return "" unless ($json =~ m{^HTTP/1\.0\s*200});
 
-  return "" if ($curl->getinfo(CURLINFO_HTTP_CODE) != 200);
-
+  $json =~ s/^[\s\S]*?\r\n\r\n//;
   my $data = decode_json($json);
   return "" if ($$data{"Config"}{"Hostname"} eq $ENV{"HOSTNAME"});
 
@@ -29,3 +35,4 @@ sub {
 }
 
 ';
+
