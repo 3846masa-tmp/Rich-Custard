@@ -1,0 +1,35 @@
+upstream docker {
+	server unix:/var/run/docker.sock fail_timeout=5s;
+}
+
+server {
+	listen 80;
+
+	server_name localhost;
+
+	allow 127.0.0.1;
+	deny  all;
+
+	location / {
+		proxy_pass http://docker;
+	}
+}
+
+server {
+	listen 80 default_server;
+
+	proxy_set_header Host $host;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Host $host;
+	proxy_set_header X-Forwarded-Server $host;
+	proxy_set_header X-Real-IP $remote_addr;
+
+	location / {
+		more_set_headers "X-Robots-Tag: noindex, nofollow, noarchive";
+		if ($proxy = "") {
+			return 404;
+		}
+		proxy_pass "http://$proxy";
+	}
+}
+
