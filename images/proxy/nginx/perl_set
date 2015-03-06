@@ -1,3 +1,14 @@
+perl_set $req_connection '
+
+use strict;
+use warnings;
+
+sub {
+  my $r = shift;
+  return $r->header_in("Connection") || "Keep-Alive";
+}
+';
+
 perl_set $proxy '
 
 use strict;
