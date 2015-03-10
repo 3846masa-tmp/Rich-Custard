@@ -22,7 +22,6 @@ sub {
   my $host = $r->header_in("Host");
   $host =~ s/\Q$ENV{"DOMAIN"}\E//;
   my ($container, $port) = split(/\./, $host);
-  $port = "80" unless ($port =~ /^\d+$/);
 
   my $sock = IO::Socket::UNIX->new(
     Type => SOCK_STREAM(),
@@ -41,6 +40,13 @@ sub {
   $json =~ s/^[\s\S]*?\r\n\r\n//;
   my $data = decode_json($json);
   return "" if ($$data{"Config"}{"Hostname"} eq $ENV{"HOSTNAME"});
+
+  my $default_port = "80";
+  foreach my $env_str (@{$$data{"Config"}{"Env"}}) {
+    next unless ($env_str =~ /^DEFAULT_PROXY_PORT=(\d+)$/);
+    $default_port = $1;
+  }
+  $port = ($port =~ /^\d+$/) ? $port : $default_port;
 
   return $$data{"NetworkSettings"}{"IPAddress"} . ":" . $port;
 }
