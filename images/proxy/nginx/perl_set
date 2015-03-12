@@ -20,8 +20,17 @@ sub {
   my $r = shift;
 
   my $host = $r->header_in("Host");
-  $host =~ s/\Q$ENV{"DOMAIN"}\E//;
-  my ($container, $port) = split(/\./, $host);
+  $host =~ s/\.?\Q$ENV{"DOMAIN"}\E//;
+  my @params = reverse(split(/\./, $host));
+  
+  return "" if (scalar(@params) < 1);
+  
+  my ($port, $container) = (undef, "");
+  if ($params[0] =~ /^\d+$/) {
+    ($port, $container) = @params;
+  } else {
+    $container = $params[0];
+  }
 
   my $sock = IO::Socket::UNIX->new(
     Type => SOCK_STREAM(),
@@ -46,7 +55,7 @@ sub {
     next unless ($env_str =~ /^DEFAULT_PROXY_PORT=(\d+)$/);
     $default_port = $1;
   }
-  $port = ($port =~ /^\d+$/) ? $port : $default_port;
+  $port = (defined($port)) ? $port : $default_port;
 
   return $$data{"NetworkSettings"}{"IPAddress"} . ":" . $port;
 }
